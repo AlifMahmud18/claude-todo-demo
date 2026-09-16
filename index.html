@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Today's List</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #ECE9E1;
+    --surface: #FBFAF7;
+    --ink: #1F2420;
+    --ink-soft: #4A4F49;
+    --meta: #8B8578;
+    --line: #D8D3C6;
+    --accent: #2F5233;
+    --accent-soft: #E4EAE2;
+    --danger: #A23B3B;
+    --radius: 3px;
+    font-size: 16px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 6vh 24px 10vh;
+    line-height: 1.5;
+  }
+
+  /* subtle paper texture via layered gradients, no external image */
+  body {
+    background-image:
+      radial-gradient(circle at 20% 15%, rgba(255,255,255,0.5), transparent 40%),
+      radial-gradient(circle at 85% 80%, rgba(0,0,0,0.03), transparent 45%);
+  }
+
+  .sheet {
+    width: 100%;
+    max-width: 560px;
+  }
+
+  header.page-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+
+  h1 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 500;
+    font-optical-sizing: auto;
+    font-size: 2.15rem;
+    letter-spacing: -0.01em;
+    margin: 0;
+    color: var(--ink);
+  }
+
+  .today {
+    font-size: 0.85rem;
+    color: var(--meta);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    padding-bottom: 4px;
+  }
+
+  .rule {
+    height: 1px;
+    background: var(--line);
+    margin: 18px 0 26px;
+  }
+
+  form.add-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 30px;
+  }
+
+  .add-row input[type="text"] {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 13px 15px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.98rem;
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+
+  .add-row input[type="text"]::placeholder {
+    color: var(--meta);
+  }
+
+  .add-row input[type="text"]:focus {
+    border-color: var(--accent);
+  }
+
+  .add-row button {
+    background: var(--ink);
+    color: var(--surface);
+    border: none;
+    border-radius: var(--radius);
+    padding: 0 22px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+
+  .add-row button:hover {
+    background: var(--accent);
+  }
+
+  .filters {
+    display: flex;
+    gap: 22px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .filters button {
+    background: none;
+    border: none;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.85rem;
+    color: var(--meta);
+    padding: 0 0 10px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transform: translateY(1px);
+  }
+
+  .filters button.active {
+    color: var(--ink);
+    border-bottom-color: var(--accent);
+  }
+
+  ul.list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  li.task {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px 2px;
+    border-bottom: 1px solid var(--line);
+    animation: rise 0.25s ease;
+  }
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  li.task.removing {
+    animation: fall 0.2s ease forwards;
+  }
+
+  @keyframes fall {
+    to { opacity: 0; transform: translateX(8px); }
+  }
+
+  .check {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    margin-top: 2px;
+    border-radius: 50%;
+    border: 1.5px solid var(--ink-soft);
+    background: transparent;
+    cursor: pointer;
+    position: relative;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+
+  .check.done {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .check.done::after {
+    content: "";
+    position: absolute;
+    left: 6px;
+    top: 2px;
+    width: 5px;
+    height: 9px;
+    border-right: 2px solid var(--surface);
+    border-bottom: 2px solid var(--surface);
+    transform: rotate(40deg);
+  }
+
+  .task-text {
+    flex: 1;
+    font-size: 0.98rem;
+    color: var(--ink);
+    word-break: break-word;
+    cursor: text;
+    outline: none;
+  }
+
+  .task-text.done {
+    color: var(--meta);
+    text-decoration: line-through;
+    text-decoration-color: var(--line);
+  }
+
+  .remove {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    color: var(--meta);
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 0 2px;
+    opacity: 0;
+    transition: opacity 0.15s ease, color 0.15s ease;
+  }
+
+  li.task:hover .remove {
+    opacity: 1;
+  }
+
+  .remove:hover {
+    color: var(--danger);
+  }
+
+  .empty-state {
+    padding: 40px 2px;
+    color: var(--meta);
+    font-size: 0.95rem;
+    font-style: italic;
+    font-family: 'Fraunces', serif;
+  }
+
+  footer.status {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 22px;
+    font-size: 0.82rem;
+    color: var(--meta);
+  }
+
+  .progress-track {
+    flex: 1;
+    height: 3px;
+    background: var(--line);
+    border-radius: 2px;
+    margin: 0 16px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width 0.3s ease;
+  }
+
+  .clear-done {
+    background: none;
+    border: none;
+    color: var(--meta);
+    font-size: 0.82rem;
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: var(--line);
+    white-space: nowrap;
+  }
+
+  .clear-done:hover {
+    color: var(--danger);
+  }
+
+  @media (max-width: 480px) {
+    h1 { font-size: 1.75rem; }
+    .today { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    li.task, li.task.removing { animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="sheet">
+  <header class="page-head">
+    <h1>Today's List</h1>
+    <span class="today" id="todayLabel"></span>
+  </header>
+  <div class="rule"></div>
+
+  <form class="add-row" id="addForm">
+    <input type="text" id="taskInput" placeholder="Add a task…" autocomplete="off" maxlength="200">
+    <button type="submit">Add</button>
+  </form>
+
+  <nav class="filters" id="filters">
+    <button data-filter="all" class="active">All</button>
+    <button data-filter="active">Active</button>
+    <button data-filter="done">Done</button>
+  </nav>
+
+  <ul class="list" id="list"></ul>
+
+  <footer class="status">
+    <span id="countLabel">0 tasks</span>
+    <span class="progress-track"><span class="progress-fill" id="progressFill"></span></span>
+    <button class="clear-done" id="clearDone">Clear done</button>
+  </footer>
+</div>
+
+<script>
+(function () {
+  const STORAGE_KEY = 'todays-list-tasks';
+  const list = document.getElementById('list');
+  const addForm = document.getElementById('addForm');
+  const taskInput = document.getElementById('taskInput');
+  const filtersEl = document.getElementById('filters');
+  const countLabel = document.getElementById('countLabel');
+  const progressFill = document.getElementById('progressFill');
+  const clearDoneBtn = document.getElementById('clearDone');
+  const todayLabel = document.getElementById('todayLabel');
+
+  let tasks = [];
+  let filter = 'all';
+
+  function loadTasks() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      tasks = raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      tasks = [];
+    }
+  }
+
+  function saveTasks() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    } catch (e) {
+      /* storage unavailable — app still works for the session */
+    }
+  }
+
+  function uid() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  }
+
+  function setToday() {
+    const opts = { weekday: 'short', month: 'short', day: 'numeric' };
+    todayLabel.textContent = new Date().toLocaleDateString(undefined, opts);
+  }
+
+  function visibleTasks() {
+    if (filter === 'active') return tasks.filter(t => !t.done);
+    if (filter === 'done') return tasks.filter(t => t.done);
+    return tasks;
+  }
+
+  function render() {
+    list.innerHTML = '';
+    const items = visibleTasks();
+
+    if (items.length === 0) {
+      const empty = document.createElement('li');
+      empty.className = 'empty-state';
+      empty.textContent = tasks.length === 0
+        ? 'Nothing on the list yet. Add the first thing.'
+        : 'Nothing here for this view.';
+      list.appendChild(empty);
+    } else {
+      items.forEach(task => list.appendChild(renderTask(task)));
+    }
+
+    const total = tasks.length;
+    const doneCount = tasks.filter(t => t.done).length;
+    countLabel.textContent = total === 0
+      ? '0 tasks'
+      : `${total} task${total === 1 ? '' : 's'} · ${doneCount} done`;
+    progressFill.style.width = total === 0 ? '0%' : `${(doneCount / total) * 100}%`;
+
+    saveTasks();
+  }
+
+  function renderTask(task) {
+    const li = document.createElement('li');
+    li.className = 'task';
+    li.dataset.id = task.id;
+
+    const check = document.createElement('button');
+    check.className = 'check' + (task.done ? ' done' : '');
+    check.setAttribute('aria-label', task.done ? 'Mark as not done' : 'Mark as done');
+    check.addEventListener('click', () => toggleTask(task.id));
+
+    const text = document.createElement('span');
+    text.className = 'task-text' + (task.done ? ' done' : '');
+    text.textContent = task.text;
+    text.contentEditable = 'true';
+    text.spellcheck = false;
+    text.addEventListener('blur', () => commitEdit(task.id, text.textContent));
+    text.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); text.blur(); }
+    });
+
+    const remove = document.createElement('button');
+    remove.className = 'remove';
+    remove.innerHTML = '&times;';
+    remove.setAttribute('aria-label', 'Delete task');
+    remove.addEventListener('click', () => removeTask(task.id, li));
+
+    li.appendChild(check);
+    li.appendChild(text);
+    li.appendChild(remove);
+    return li;
+  }
+
+  function addTask(text) {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    tasks.unshift({ id: uid(), text: trimmed, done: false });
+    render();
+  }
+
+  function toggleTask(id) {
+    const t = tasks.find(t => t.id === id);
+    if (t) t.done = !t.done;
+    render();
+  }
+
+  function commitEdit(id, newText) {
+    const trimmed = newText.trim();
+    const t = tasks.find(t => t.id === id);
+    if (!t) return;
+    if (!trimmed) {
+      removeTask(id);
+      return;
+    }
+    t.text = trimmed;
+    render();
+  }
+
+  function removeTask(id, liEl) {
+    if (liEl) {
+      liEl.classList.add('removing');
+      setTimeout(() => {
+        tasks = tasks.filter(t => t.id !== id);
+        render();
+      }, 180);
+    } else {
+      tasks = tasks.filter(t => t.id !== id);
+      render();
+    }
+  }
+
+  function clearDone() {
+    tasks = tasks.filter(t => !t.done);
+    render();
+  }
+
+  addForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    addTask(taskInput.value);
+    taskInput.value = '';
+    taskInput.focus();
+  });
+
+  filtersEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-filter]');
+    if (!btn) return;
+    filter = btn.dataset.filter;
+    [...filtersEl.children].forEach(b => b.classList.toggle('active', b === btn));
+    render();
+  });
+
+  clearDoneBtn.addEventListener('click', clearDone);
+
+  setToday();
+  loadTasks();
+  render();
+})();
+</script>
+
+</body>
+</html>
